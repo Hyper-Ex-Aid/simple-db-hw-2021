@@ -13,7 +13,7 @@ public class Tuple implements Serializable {
     private static final long serialVersionUID = 1L;
     private TupleDesc td;
     private RecordId rid;
-    private ArrayList<Field> fAr = new ArrayList<>();
+    private Field[] fAr;
 
     /**
      * Create a new tuple with the specified schema (type).
@@ -24,6 +24,7 @@ public class Tuple implements Serializable {
     public Tuple(TupleDesc td) {
         // some code goes here
         this.td = td;
+        fAr=new Field[td.numFields()];
     }
 
     /**
@@ -63,7 +64,9 @@ public class Tuple implements Serializable {
      */
     public void setField(int i, Field f) {
         // some code goes here
-        fAr.set(i,f);
+        if(i>=0&&i<fAr.length){
+            fAr[i]=f;
+        }
     }
 
     /**
@@ -73,8 +76,10 @@ public class Tuple implements Serializable {
      */
     public Field getField(int i) {
         // some code goes here
-
-        return fAr.get(i);
+        if(i>=0&&i< fAr.length){
+            return fAr[i];
+        }
+        return null;
     }
 
     /**
@@ -87,9 +92,9 @@ public class Tuple implements Serializable {
     public String toString() {
         // some code goes here
         String result = "";
-        for(int i=0;i<fAr.size();i++){
-            result+=fAr.get(i).toString();
-            if(i<fAr.size()-1){
+        for(int i=0;i<fAr.length;i++){
+            result+=fAr[i].toString();
+            if(i<fAr.length-1){
                 result=result+"\\";
             }
         }
@@ -106,13 +111,13 @@ public class Tuple implements Serializable {
 
             @Override
             public boolean hasNext() {
-                return (cursor<fAr.size());
+                return (cursor<fAr.length);
             }
 
             @Override
             public Field next() {
-                if(cursor+1<fAr.size()){
-                    return fAr.get(cursor+1);
+                if(cursor+1<fAr.length){
+                    return fAr[cursor+1];
                 }
                 return null;
             }
