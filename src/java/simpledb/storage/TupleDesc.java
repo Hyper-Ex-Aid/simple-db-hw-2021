@@ -10,10 +10,10 @@ import java.util.*;
  */
 public class TupleDesc implements Serializable {
 
-    private ArrayList<TDItem> tdAr = new ArrayList<>();
+    private ArrayList<TDItem> tdAr;
 
     public TupleDesc() {
-
+        tdAr=new ArrayList<>();
     }
 
     /**
@@ -48,26 +48,27 @@ public class TupleDesc implements Serializable {
      */
     public Iterator<TDItem> iterator() {
         // some code goes here
-        Iterator<TDItem> iterator = new Iterator<TDItem>() {
-
-            int cursor = 0;//指示当前位置的游标
-
-            @Override
-            public boolean hasNext() {
-                //如果当前游标小于其长度，则表示还可以继续遍历
-                return cursor < tdAr.size();
-            }
-
-            @Override
-            public TDItem next() {
-                if (cursor + 1 < tdAr.size()) {
-                    return tdAr.get(cursor + 1);
-                } else {
-                    return null;
-                }
-            }
-        };
-        return iterator;
+//        Iterator<TDItem> iterator = new Iterator<TDItem>() {
+//
+//            int cursor = 0;//指示当前位置的游标
+//
+//            @Override
+//            public boolean hasNext() {
+//                //如果当前游标小于其长度，则表示还可以继续遍历
+//                return cursor < tdAr.size();
+//            }
+//
+//            @Override
+//            public TDItem next() {
+//                if (cursor + 1 < tdAr.size()) {
+//                    return tdAr.get(cursor + 1);
+//                } else {
+//                    return null;
+//                }
+//            }
+//        };
+//        return iterator;
+        return (Iterator<TDItem>)tdAr.iterator();
     }
 
     private static final long serialVersionUID = 1L;
@@ -82,6 +83,7 @@ public class TupleDesc implements Serializable {
      */
     public TupleDesc(Type[] typeAr, String[] fieldAr) {
         // some code goes here
+        tdAr=new ArrayList<>();
         for (int i = 0; i < typeAr.length; i++) {
             TDItem tdItem = new TDItem(typeAr[i], fieldAr[i]);
             tdAr.add(tdItem);
@@ -96,6 +98,7 @@ public class TupleDesc implements Serializable {
      */
     public TupleDesc(Type[] typeAr) {
         // some code goes here
+        tdAr=new ArrayList<>();
         for (int i = 0; i < typeAr.length; i++) {
             TDItem tdItem = new TDItem(typeAr[i], null);
             tdAr.add(tdItem);
@@ -164,7 +167,7 @@ public class TupleDesc implements Serializable {
                 return  i;
             }
         }
-        throw new NoSuchElementException();
+        throw new NoSuchElementException("not find fiedlName:"+name);
     }
 
     /**
