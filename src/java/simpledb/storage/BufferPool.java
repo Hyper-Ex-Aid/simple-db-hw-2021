@@ -9,6 +9,8 @@ import simpledb.transaction.TransactionId;
 
 import java.io.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -33,6 +35,10 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
 
+    public static int numPages = DEFAULT_PAGES;
+
+    public static ConcurrentHashMap<PageId,Page> pageHashMap;
+
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -40,6 +46,8 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         // some code goes here
+        setNumPages(numPages);
+        pageHashMap = new ConcurrentHashMap<>();
     }
     
     public static int getPageSize() {
@@ -55,6 +63,9 @@ public class BufferPool {
     public static void resetPageSize() {
     	BufferPool.pageSize = DEFAULT_PAGE_SIZE;
     }
+
+    public static  void setNumPages(int numPages){BufferPool.numPages=numPages;}
+
 
     /**
      * Retrieve the specified page with the associated permissions.
@@ -74,8 +85,26 @@ public class BufferPool {
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+        //如果缓存池中能查找到检索到的页面，则将其返回
+        if(pageHashMap.containsKey(pid)){
+            return pageHashMap.get(pid);
+        }else{
+            //如果不存在，则先请求该页，将其添加到缓存池中并返回
+            DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+            Page page = dbFile.readPage(pid);
+            //如果缓存池已满，删除随机一页，然后添加
+            if(pageHashMap.size()<=numPages){
+                PageId pageId= pageHashMap.keys().nextElement();
+                pageHashMap.remove(pageId);
+                return pageHashMap.get(pid);
+            }else{
+                //缓存池未满，直接添加
+                pageHashMap.put(pid,page);
+                return pageHashMap.get(pid);
+            }
+        }
     }
+
 
     /**
      * Releases the lock on a page.
