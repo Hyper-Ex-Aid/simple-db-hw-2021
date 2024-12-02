@@ -2,18 +2,27 @@ package simpledb.storage;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 
 /**
  * Tuple maintains information about the contents of a tuple. Tuples have a specified schema specified by a TupleDesc object and contain
  * Field objects with the data for each field.
+ * Tuple维护有关元组内容的信息。元组具有由TupleDesc对象指定的特定架构，并包含“Field”对象，其中包含每个字段的数据。
  */
 public class Tuple implements Serializable {
 
     private static final long serialVersionUID = 1L;
+
+    //元组的类型
     private TupleDesc td;
+
+    //ReocrdId表示元组在磁盘上的位置
     private RecordId rid;
+
+    //元组存储字段集合，字段是不同数据类型实现的接口
     private Field[] fAr;
+
 
     /**
      * Create a new tuple with the specified schema (type).
@@ -103,26 +112,11 @@ public class Tuple implements Serializable {
 
     /**
      * @return An iterator which iterates over all the fields of this tuple
+     * 用来遍历元组所管理的每一个字段
      */
     public Iterator<Field> fields() {
         // some code goes here
-        Iterator<Field> iterator = new Iterator<Field>() {
-            int cursor =0;//指示当前位置
-
-            @Override
-            public boolean hasNext() {
-                return (cursor<fAr.length);
-            }
-
-            @Override
-            public Field next() {
-                if(cursor+1<fAr.length){
-                    return fAr[cursor+1];
-                }
-                return null;
-            }
-        };
-        return iterator;
+        return (Iterator<Field>) Arrays.asList(fAr).iterator();
     }
 
     /**
