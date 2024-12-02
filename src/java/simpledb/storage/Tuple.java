@@ -1,7 +1,6 @@
 package simpledb.storage;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -21,7 +20,7 @@ public class Tuple implements Serializable {
     private RecordId rid;
 
     //元组存储字段集合，字段是不同数据类型实现的接口
-    private Field[] fAr;
+    private final Field[] fAr;
 
 
     /**
@@ -93,21 +92,21 @@ public class Tuple implements Serializable {
 
     /**
      * Returns the contents of this Tuple as a string. Note that to pass the system tests, the format needs to be as follows:
-     *
+     * <p>
      * column1\tcolumn2\tcolumn3\t...\tcolumnN
-     *
+     * <p>
      * where \t is any whitespace (except a newline)
      */
     public String toString() {
         // some code goes here
-        String result = "";
+        StringBuilder result = new StringBuilder();
         for(int i=0;i<fAr.length;i++){
-            result+=fAr[i].toString();
+            result.append(fAr[i].toString());
             if(i<fAr.length-1){
-                result=result+"\\";
+                result.append("\\");
             }
         }
-        return result;
+        return result.toString();
     }
 
     /**
