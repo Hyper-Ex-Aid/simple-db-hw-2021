@@ -19,11 +19,10 @@ import java.util.*;
  * @Threadsafe
  */
 public class Catalog {
+    //与每个表相关联的是一个TupleDesc对象，它允许操作员确定表中字段的类型和数量
 
     private ArrayList<Table> tableArrayList=new ArrayList<>();
-
-    //用于减少遍历时间
-    public HashMap<String,Integer> hashMap=new HashMap<>();
+    private ArrayList<Integer> tableIdList = new ArrayList<>();
 
     //Table内部类，用于组织Table
     public static class Table implements Serializable {
@@ -59,6 +58,7 @@ public class Catalog {
 
     /**
      * Constructor. Creates a new, empty catalog.
+     * 构造函数
      */
     public Catalog() {
         // some code goes here
@@ -75,24 +75,28 @@ public class Catalog {
      *         as the table for a given name.
      * @param pkeyField
      *         the name of the primary key field
+     *         主键字段的名称
      */
     public void addTable(DbFile file, String name, String pkeyField) {
         // some code goes here
-        //id和name都不能重复
+        //如果数组是空的，则直接将表添加
         if (tableArrayList.isEmpty()) {
             tableArrayList.add(new Table(file, name, pkeyField));
-            hashMap.put(name, file.getId());
+            tableIdList.add(file.getId());
         } else {
             for(int i=0;i<tableArrayList.size();i++){
+                //如果新加入的表和之前存储的表重名了，用新表替换旧表
                 if(tableArrayList.get(i).name.equals(name)){
-                    //如果名称相同，id不同，则名称不变，替换file
-                    //如果名称不同，id相同，则替换名称
                     tableArrayList.get(i).file=file;
+                    tableIdList.set(i, file.getId());
                 }else if(tableArrayList.get(i).file.getId()==file.getId()){
+                    //如果表的id相同，则把表名和表都更新
                     tableArrayList.get(i).name=name;
                     tableArrayList.get(i).file=file;
                 }else {
+                    //如果不存在冲突，则直接添加
                     tableArrayList.add(new Table(file,name,pkeyField));
+                    tableIdList.add(file.getId());
                 }
             }
         }
@@ -111,6 +115,7 @@ public class Catalog {
      *         getFile
      */
     public void addTable(DbFile file) {
+        //表名随机生成
         addTable(file, (UUID.randomUUID()).toString());
     }
 
@@ -123,14 +128,15 @@ public class Catalog {
     public int getTableId(String name) throws NoSuchElementException {
         // some code goes here
         if(name==null){
-            throw new NoSuchElementException();
+            throw new NoSuchElementException("输入的表名为空");
         }
         for(int i=0;i<tableArrayList.size();i++){
             if(name.equals(tableArrayList.get(i).getName())){
                 return tableArrayList.get(i).file.getId();
             }
         }
-        throw new NoSuchElementException();
+        //如果表不存在，抛出异常
+        throw new NoSuchElementException("不存在名为："+name+"的表");
     }
 
     /**
@@ -142,20 +148,17 @@ public class Catalog {
      *         if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
-        // some code goes here
-//        if(hashMap.containsValue(tableid)){
-//
-//        }
         for(int i=0;i<tableArrayList.size();i++){
             if(tableid==tableArrayList.get(i).file.getId()){
                 return tableArrayList.get(i).file.getTupleDesc();
             }
         }
-        throw new NoSuchElementException();
+        throw new NoSuchElementException("不存在id为："+tableid+"的表");
     }
 
     /**
      * Returns the DbFile that can be used to read the contents of the specified table.
+     * DbFile可以用来获取指定表的内容
      *
      * @param tableid
      *         The id of the table, as specified by the DbFile.getId() function passed to addTable
@@ -167,7 +170,7 @@ public class Catalog {
                 return tableArrayList.get(i).file;
             }
         }
-        throw new NoSuchElementException();
+        throw new NoSuchElementException("不存在id为："+tableid+"的表");
     }
 
     public String getPrimaryKey(int tableid) throws NoSuchElementException{
@@ -177,12 +180,12 @@ public class Catalog {
                 return tableArrayList.get(i).pkeyField;
             }
         }
-        throw new NoSuchElementException();
+        throw new NoSuchElementException("不存在id为："+tableid+"的表");
     }
 
     public Iterator<Integer> tableIdIterator() {
         // some code goes here
-        return null;
+        return tableIdList.iterator();
     }
 
     public String getTableName(int id) throws NoSuchElementException{
@@ -192,17 +195,19 @@ public class Catalog {
                 return tableArrayList.get(i).name;
             }
         }
-        throw new NoSuchElementException();
+        throw new NoSuchElementException("无效id");
     }
 
     /** Delete all tables from the catalog */
     public void clear() {
         // some code goes here
         tableArrayList.clear();
+        tableIdList.clear();
     }
 
     /**
      * Reads the schema from a file and creates the appropriate tables in the database.
+     * 从文件中读取模式并在数据库中创建适当的表
      *
      * @param catalogFile
      */
