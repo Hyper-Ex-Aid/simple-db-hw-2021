@@ -48,26 +48,6 @@ public class TupleDesc implements Serializable {
      */
     public Iterator<TDItem> iterator() {
         // some code goes here
-//        Iterator<TDItem> iterator = new Iterator<TDItem>() {
-//
-//            int cursor = 0;//指示当前位置的游标
-//
-//            @Override
-//            public boolean hasNext() {
-//                //如果当前游标小于其长度，则表示还可以继续遍历
-//                return cursor < tdAr.size();
-//            }
-//
-//            @Override
-//            public TDItem next() {
-//                if (cursor + 1 < tdAr.size()) {
-//                    return tdAr.get(cursor + 1);
-//                } else {
-//                    return null;
-//                }
-//            }
-//        };
-//        return iterator;
         return (Iterator<TDItem>)tdAr.iterator();
     }
 
