@@ -29,8 +29,13 @@ public class HeapFile implements DbFile {
      *            the file that stores the on-disk backing store for this heap
      *            file.
      */
+
+    private File file;
+    private TupleDesc tupleDesc;
     public HeapFile(File f, TupleDesc td) {
         // some code goes here
+        this.file=f;
+        this.tupleDesc=td;
     }
 
     /**
@@ -40,7 +45,7 @@ public class HeapFile implements DbFile {
      */
     public File getFile() {
         // some code goes here
-        return null;
+        return this.file;
     }
 
     /**
@@ -54,7 +59,7 @@ public class HeapFile implements DbFile {
      */
     public int getId() {
         // some code goes here
-        throw new UnsupportedOperationException("implement this");
+        return this.file.getAbsoluteFile().hashCode();
     }
 
     /**
@@ -64,13 +69,35 @@ public class HeapFile implements DbFile {
      */
     public TupleDesc getTupleDesc() {
         // some code goes here
-        throw new UnsupportedOperationException("implement this");
+        return this.tupleDesc;
     }
 
     // see DbFile.java for javadocs
     public Page readPage(PageId pid) {
         // some code goes here
-        return null;
+        //创建随机访问文件
+        try{
+            RandomAccessFile randomAccessFile = new RandomAccessFile(file,"r");
+            //计算偏移
+            //确定这是第几页
+            int pgNo = pid.getPageNumber();
+            //页数x每页的大小，确定从哪个位置开始读取数据
+            int offset = pgNo*BufferPool.getPageSize();
+            //将指针定位到读的位置
+            randomAccessFile.seek(offset);
+            //创建读取数组
+            byte[] readBytes = new byte[BufferPool.getPageSize()];
+            randomAccessFile.read(readBytes);
+            //创建返回的HeapPage,HeapPage需要HeapPageId和byte[]
+            //创建HeapPageId
+            HeapPageId heapPageId = new HeapPageId(pid.getTableId(),pgNo);
+            HeapPage heapPage = new HeapPage(heapPageId,readBytes);
+            randomAccessFile.close();
+            return heapPage;
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        throw new IllegalArgumentException("this pid is invalid");
     }
 
     // see DbFile.java for javadocs
@@ -84,7 +111,8 @@ public class HeapFile implements DbFile {
      */
     public int numPages() {
         // some code goes here
-        return 0;
+        //返回一共由多少页，页数等于文件总长度/单页长度，最后结果向下取整
+        return (int)Math.floor((double) file.length() /BufferPool.getPageSize());
     }
 
     // see DbFile.java for javadocs
@@ -104,9 +132,76 @@ public class HeapFile implements DbFile {
     }
 
     // see DbFile.java for javadocs
+    //遍历HeapFile中每个页面的图元
     public DbFileIterator iterator(TransactionId tid) {
         // some code goes here
-        return null;
+
+        return new HeapFileIterator(this,tid);
+    }
+
+    private static final class HeapFileIterator implements DbFileIterator{
+
+        private final HeapFile heapFile;
+        private final  TransactionId tid;
+
+        private Iterator<Tuple> it;
+
+        private int whichPage;
+
+        public HeapFileIterator(HeapFile file,TransactionId tid){
+            this.heapFile=file;
+            this.tid=tid;
+        }
+
+        //获取一个页面的图元
+        public Iterator<Tuple> getPageTuples(int pageNumber) throws TransactionAbortedException, DbException {
+            HeapPageId pid = new HeapPageId(heapFile.getId(),pageNumber);
+            HeapPage page =(HeapPage) Database.getBufferPool().getPage(tid,pid,Permissions.READ_ONLY);
+            return page.iterator();
+        }
+
+        @Override
+        public void open() throws DbException, TransactionAbortedException {
+            whichPage = 0;
+            it = getPageTuples(whichPage);
+        }
+
+        @Override
+        public boolean hasNext() throws DbException, TransactionAbortedException {
+            if(it==null){
+                return false;
+            }
+            if(!it.hasNext()){
+                if(whichPage<(heapFile.numPages())){
+                    whichPage++;
+                    it=getPageTuples(whichPage);
+                    return it.hasNext();
+                }else{
+                    return false;
+            }
+            }else {
+                return true;
+            }
+        }
+
+        @Override
+        public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
+            if(it==null||!it.hasNext()){
+                throw new NoSuchElementException();
+            }
+            return it.next();
+        }
+
+        @Override
+        public void rewind() throws DbException, TransactionAbortedException {
+            close();
+            open();
+        }
+
+        @Override
+        public void close() {
+            it=null;
+        }
     }
 
 }

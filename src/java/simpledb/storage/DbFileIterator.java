@@ -2,6 +2,7 @@ package simpledb.storage;
 import simpledb.common.DbException;
 import simpledb.transaction.TransactionAbortedException;
 
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -14,11 +15,11 @@ public interface DbFileIterator{
      * @throws DbException when there are problems opening/accessing the database.
      */
     void open()
-        throws DbException, TransactionAbortedException;
+            throws DbException, TransactionAbortedException;
 
     /** @return true if there are more tuples available, false if no more tuples or iterator isn't open. */
     boolean hasNext()
-        throws DbException, TransactionAbortedException;
+            throws DbException, TransactionAbortedException;
 
     /**
      * Gets the next tuple from the operator (typically implementing by reading

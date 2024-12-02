@@ -83,7 +83,7 @@ public class BufferPool {
      * @param perm the requested permissions on the page
      */
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
-        throws TransactionAbortedException, DbException {
+            throws TransactionAbortedException, DbException{
         // some code goes here
         //如果缓存池中能查找到检索到的页面，则将其返回
         if(pageHashMap.containsKey(pid)){
@@ -91,7 +91,10 @@ public class BufferPool {
         }else{
             //如果不存在，则先请求该页，将其添加到缓存池中并返回
             DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
-            Page page = dbFile.readPage(pid);
+            Page page = null;
+            try{
+                page = dbFile.readPage(pid);
+            }catch (Exception ignored){}
             //如果缓存池已满，删除随机一页，然后添加
             if(pageHashMap.size()<=numPages){
                 PageId pageId= pageHashMap.keys().nextElement();
