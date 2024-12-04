@@ -37,7 +37,7 @@ public class BufferPool {
 
     public static int numPages = DEFAULT_PAGES;
 
-    public static ConcurrentHashMap<PageId,Page> pageHashMap;
+    public static ConcurrentHashMap<Integer,Page> pageHashMap;
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -86,26 +86,27 @@ public class BufferPool {
             throws TransactionAbortedException, DbException{
         // some code goes here
         //如果缓存池中能查找到检索到的页面，则将其返回
-        if(pageHashMap.containsKey(pid)){
-            return pageHashMap.get(pid);
-        }else{
-            //如果不存在，则先请求该页，将其添加到缓存池中并返回
+//        if(pageHashMap.containsKey(pid.hashCode())){
+//            return pageHashMap.get(pid);
+//        }else{
+//            //
+//            //如果不存在，则先请求该页，将其添加到缓存池中并返回
+//            DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+//            Page page = dbFile.readPage(pid);
+//            //如果此时缓存池满了，抛出异常DbException
+////            if(pageHashMap.size()>numPages){
+////                throw new DbException("缓存池已满");
+////            }
+//            //如果缓存池未满，则将读取到也面添加到缓存池，并返回
+//            pageHashMap.put(pid.hashCode(),page);
+//            return pageHashMap.get(pid);
+//        }
+        if(!pageHashMap.containsKey(pid.hashCode())){
             DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
-            Page page = null;
-            try{
-                page = dbFile.readPage(pid);
-            }catch (Exception ignored){}
-            //如果缓存池已满，删除随机一页，然后添加
-            if(pageHashMap.size()<=numPages){
-                PageId pageId= pageHashMap.keys().nextElement();
-                pageHashMap.remove(pageId);
-                return pageHashMap.get(pid);
-            }else{
-                //缓存池未满，直接添加
-                pageHashMap.put(pid,page);
-                return pageHashMap.get(pid);
-            }
+            Page page = dbFile.readPage(pid);
+            pageHashMap.put(pid.hashCode(),page);
         }
+        return pageHashMap.get(pid.hashCode());
     }
 
 

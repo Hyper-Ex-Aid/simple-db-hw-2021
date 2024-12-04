@@ -13,6 +13,7 @@ import java.util.List;
  * pages of binary data in the appropriate format for simpledb heap pages
  * Pages are padded out to a specified length, and written consecutive in a
  * data file.
+ * HeapFileEncoder读取以逗号分隔的文本文件或接受元组数组并将其转换为适合simpledb堆页面格式的二进制数据页面，页面被填充到指定的长度，并连续写入数据文件中
  */
 
 public class HeapFileEncoder {

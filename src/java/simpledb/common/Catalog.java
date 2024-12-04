@@ -10,6 +10,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The Catalog keeps track of all available tables in the database and their associated schemas. For now, this is a stub catalog that must
@@ -21,8 +22,9 @@ import java.util.*;
 public class Catalog {
     //与每个表相关联的是一个TupleDesc对象，它允许操作员确定表中字段的类型和数量
 
-    private ArrayList<Table> tableArrayList=new ArrayList<>();
-    private ArrayList<Integer> tableIdList = new ArrayList<>();
+//    private ArrayList<Table> tableArrayList=new ArrayList<>();
+//    private ArrayList<Integer> tableIdList = new ArrayList<>();
+    public final ConcurrentHashMap<Integer,Table> hashTable;
 
     //Table内部类，用于组织Table
     public static class Table implements Serializable {
@@ -62,6 +64,7 @@ public class Catalog {
      */
     public Catalog() {
         // some code goes here
+        hashTable=new ConcurrentHashMap<Integer,Table>();
     }
 
     /**
@@ -80,26 +83,28 @@ public class Catalog {
     public void addTable(DbFile file, String name, String pkeyField) {
         // some code goes here
         //如果数组是空的，则直接将表添加
-        if (tableArrayList.isEmpty()) {
-            tableArrayList.add(new Table(file, name, pkeyField));
-            tableIdList.add(file.getId());
-        } else {
-            for(int i=0;i<tableArrayList.size();i++){
-                //如果新加入的表和之前存储的表重名了，用新表替换旧表
-                if(tableArrayList.get(i).name.equals(name)){
-                    tableArrayList.get(i).file=file;
-                    tableIdList.set(i, file.getId());
-                }else if(tableArrayList.get(i).file.getId()==file.getId()){
-                    //如果表的id相同，则把表名和表都更新
-                    tableArrayList.get(i).name=name;
-                    tableArrayList.get(i).file=file;
-                }else {
-                    //如果不存在冲突，则直接添加
-                    tableArrayList.add(new Table(file,name,pkeyField));
-                    tableIdList.add(file.getId());
-                }
-            }
-        }
+//        if (tableArrayList.isEmpty()) {
+//            tableArrayList.add(new Table(file, name, pkeyField));
+//            tableIdList.add(file.getId());
+//        } else {
+//            for(int i=0;i<tableArrayList.size();i++){
+//                //如果新加入的表和之前存储的表重名了，用新表替换旧表
+//                if(tableArrayList.get(i).name.equals(name)){
+//                    tableArrayList.get(i).file=file;
+//                    tableIdList.set(i, file.getId());
+//                }else if(tableArrayList.get(i).file.getId()==file.getId()){
+//                    //如果表的id相同，则把表名和表都更新
+//                    tableArrayList.get(i).name=name;
+//                    tableArrayList.get(i).file=file;
+//                }else {
+//                    //如果不存在冲突，则直接添加
+//                    tableArrayList.add(new Table(file,name,pkeyField));
+//                    tableIdList.add(file.getId());
+//                }
+//            }
+//        }
+        Table t = new Table(file,name,pkeyField);
+        hashTable.put(file.getId(),t);
     }
 
     public void addTable(DbFile file, String name) {
@@ -130,13 +135,18 @@ public class Catalog {
         if(name==null){
             throw new NoSuchElementException("输入的表名为空");
         }
-        for(int i=0;i<tableArrayList.size();i++){
-            if(name.equals(tableArrayList.get(i).getName())){
-                return tableArrayList.get(i).file.getId();
+        Integer res = hashTable.searchValues(1,value->{
+            if(value.name.equals(name)){
+                return value.file.getId();
             }
+            return null;
+        });
+        if(res!=null){
+            return res;
+        }else{
+            //如果表不存在，抛出异常
+            throw new NoSuchElementException("不存在名为："+name+"的表");
         }
-        //如果表不存在，抛出异常
-        throw new NoSuchElementException("不存在名为："+name+"的表");
     }
 
     /**
@@ -148,12 +158,12 @@ public class Catalog {
      *         if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
-        for(int i=0;i<tableArrayList.size();i++){
-            if(tableid==tableArrayList.get(i).file.getId()){
-                return tableArrayList.get(i).file.getTupleDesc();
-            }
+        Table t=hashTable.getOrDefault(tableid,null);
+        if(t!=null){
+            return t.file.getTupleDesc();
+        }else{
+            throw new NoSuchElementException("不存在id为："+tableid+"的表");
         }
-        throw new NoSuchElementException("不存在id为："+tableid+"的表");
     }
 
     /**
@@ -165,44 +175,43 @@ public class Catalog {
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
         // some code goes here
-        for(int i=0;i<tableArrayList.size();i++){
-            if(tableid==tableArrayList.get(i).file.getId()){
-                return tableArrayList.get(i).file;
-            }
+        Table t=hashTable.getOrDefault(tableid,null);
+        if(t!=null){
+            return t.file;
+        }else{
+            throw new NoSuchElementException("不存在id为："+tableid+"的表");
         }
-        throw new NoSuchElementException("不存在id为："+tableid+"的表");
     }
 
     public String getPrimaryKey(int tableid) throws NoSuchElementException{
         // some code goes here
-        for(int i=0;i<tableArrayList.size();i++){
-            if(tableid==tableArrayList.get(i).file.getId()){
-                return tableArrayList.get(i).pkeyField;
-            }
+        Table t=hashTable.getOrDefault(tableid,null);
+        if(t!=null){
+            return t.pkeyField;
+        }else{
+            throw new NoSuchElementException("不存在id为："+tableid+"的表");
         }
-        throw new NoSuchElementException("不存在id为："+tableid+"的表");
     }
 
     public Iterator<Integer> tableIdIterator() {
         // some code goes here
-        return tableIdList.iterator();
+        return hashTable.keySet().iterator();
     }
 
     public String getTableName(int id) throws NoSuchElementException{
         // some code goes here
-        for(int i=0;i<tableArrayList.size();i++){
-            if(id==tableArrayList.get(i).file.getId()){
-                return tableArrayList.get(i).name;
-            }
+        Table t=hashTable.getOrDefault(id,null);
+        if(t!=null){
+            return t.name;
+        }else{
+            throw new NoSuchElementException("不存在id为："+id+"的表");
         }
-        throw new NoSuchElementException("无效id");
     }
 
     /** Delete all tables from the catalog */
     public void clear() {
         // some code goes here
-        tableArrayList.clear();
-        tableIdList.clear();
+        hashTable.clear();
     }
 
     /**

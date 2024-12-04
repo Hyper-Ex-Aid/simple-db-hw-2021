@@ -22,7 +22,7 @@ public interface DbFile {
      *
      * @throws IllegalArgumentException if the page does not exist in this file.
      */
-    Page readPage(PageId id) throws IOException;
+    Page readPage(PageId id) ;
 
     /**
      * Push the specified page to disk.

@@ -16,6 +16,7 @@ import java.util.*;
  * size, and the file is simply a collection of those pages. HeapFile works
  * closely with HeapPage. The format of HeapPages is described in the HeapPage
  * constructor.
+ * HeapFile是DbFile的一种实现，用于存储一组元组，且元组的顺序不固定。元组存储在页面中，每个页面的大小是固定的，整个文件仅仅是这些页面的集合。
  * 
  * @see HeapPage#HeapPage
  * @author Sam Madden
@@ -30,8 +31,8 @@ public class HeapFile implements DbFile {
      *            file.
      */
 
-    private File file;
-    private TupleDesc tupleDesc;
+    private final File file;
+    private final TupleDesc tupleDesc;
     public HeapFile(File f, TupleDesc td) {
         // some code goes here
         this.file=f;
@@ -54,7 +55,7 @@ public class HeapFile implements DbFile {
      * HeapFile has a "unique id," and that you always return the same value for
      * a particular HeapFile. We suggest hashing the absolute file name of the
      * file underlying the heapfile, i.e. f.getAbsoluteFile().hashCode().
-     * 
+     *
      * @return an ID uniquely identifying this HeapFile.
      */
     public int getId() {
@@ -75,27 +76,40 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public Page readPage(PageId pid) {
         // some code goes here
+        int tableId = pid.getTableId();
+        //确定这是第几页
+        int pgNo = pid.getPageNumber();
+        RandomAccessFile randomAccessFile =null;
         //创建随机访问文件
         try{
-            RandomAccessFile randomAccessFile = new RandomAccessFile(file,"r");
-            //计算偏移
-            //确定这是第几页
-            int pgNo = pid.getPageNumber();
-            //页数x每页的大小，确定从哪个位置开始读取数据
-            int offset = pgNo*BufferPool.getPageSize();
-            //将指针定位到读的位置
-            randomAccessFile.seek(offset);
+            randomAccessFile = new RandomAccessFile(file,"r");
+            if((long) (pgNo + 1) *BufferPool.getPageSize()>randomAccessFile.length()){
+                randomAccessFile.close();
+                throw new IllegalArgumentException("剩余的数据不足一页");
+            }
             //创建读取数组
             byte[] readBytes = new byte[BufferPool.getPageSize()];
-            randomAccessFile.read(readBytes);
+            //计算偏移
+            //页数x每页的大小，确定从哪个位置开始读取数据
+            //将指针定位到读的位置
+            randomAccessFile.seek((long) pgNo *BufferPool.getPageSize());
+            int read=randomAccessFile.read(readBytes,0,BufferPool.getPageSize());
+            if(read!=BufferPool.getPageSize()){
+                throw new IllegalArgumentException("数据未读满");
+            }
             //创建返回的HeapPage,HeapPage需要HeapPageId和byte[]
             //创建HeapPageId
             HeapPageId heapPageId = new HeapPageId(pid.getTableId(),pgNo);
             HeapPage heapPage = new HeapPage(heapPageId,readBytes);
-            randomAccessFile.close();
             return heapPage;
         }catch (IOException e){
             e.printStackTrace();
+        }finally {
+            try{
+                randomAccessFile.close();
+            }catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         throw new IllegalArgumentException("this pid is invalid");
     }
@@ -155,9 +169,14 @@ public class HeapFile implements DbFile {
 
         //获取一个页面的图元
         public Iterator<Tuple> getPageTuples(int pageNumber) throws TransactionAbortedException, DbException {
-            HeapPageId pid = new HeapPageId(heapFile.getId(),pageNumber);
-            HeapPage page =(HeapPage) Database.getBufferPool().getPage(tid,pid,Permissions.READ_ONLY);
-            return page.iterator();
+            //如果该页是有效的
+            if(pageNumber>=0&&pageNumber<heapFile.numPages()){
+                HeapPageId pid = new HeapPageId(heapFile.getId(),pageNumber);
+                HeapPage page =(HeapPage) Database.getBufferPool().getPage(tid,pid,Permissions.READ_ONLY);
+                return page.iterator();
+            }else{
+                throw new DbException("无效pageNumber");
+            }
         }
 
         @Override
@@ -172,7 +191,8 @@ public class HeapFile implements DbFile {
                 return false;
             }
             if(!it.hasNext()){
-                if(whichPage<(heapFile.numPages())){
+                //whichPage代表的是索引
+                if(whichPage<(heapFile.numPages()-1)){
                     whichPage++;
                     it=getPageTuples(whichPage);
                     return it.hasNext();

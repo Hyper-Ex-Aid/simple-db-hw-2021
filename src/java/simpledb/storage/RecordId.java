@@ -5,14 +5,15 @@ import java.io.Serializable;
 /**
  * A RecordId is a reference to a specific tuple on a specific page of a
  * specific table.
+ * RecordId是对特定表的特定页面上的特定元组的引用
  */
 public class RecordId implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private PageId pageId;
+    private final PageId pageId;
 
-    private int tupleNo;
+    private  final int tupleNo;
 
     /**
      * Creates a new RecordId referring to the specified PageId and tuple
@@ -72,7 +73,8 @@ public class RecordId implements Serializable {
     @Override
     public int hashCode() {
         // some code goes here
-        return (String.valueOf(pageId.hashCode())+String.valueOf(tupleNo)).hashCode();
+        String hash= ""+pageId.getTableId()+ pageId.getPageNumber()+tupleNo;
+        return hash.hashCode();
 
     }
 

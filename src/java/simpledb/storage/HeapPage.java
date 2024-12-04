@@ -74,7 +74,7 @@ public class HeapPage implements Page {
     private int getNumTuples() {        
         // some code goes here
         //Math.floor向下取整
-        return (int)Math.floor((BufferPool.getPageSize()*8)/(td.getSize()*8+1));
+        return (int)Math.floor((BufferPool.getPageSize()*8*1.0)/(td.getSize()*8+1));
 
     }
 
@@ -86,7 +86,7 @@ public class HeapPage implements Page {
         
         // some code goes here
         //用来存储某个元组是否有效
-        return (int)Math.ceil(getNumTuples()/8);
+        return (int)Math.ceil(getNumTuples()*1.0/8);
                  
     }
     
