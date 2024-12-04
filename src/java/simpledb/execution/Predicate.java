@@ -13,9 +13,9 @@ public class Predicate implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private int fieldNumber;
-    private Op op;
-    private Field operand;
+    private final int fieldNumber;
+    private final Op op;
+    private final Field operand;
 
     /** Constants used for return codes in Field.compare
      * Field.compare中用于返回代码的常量
@@ -128,7 +128,6 @@ public class Predicate implements Serializable {
      */
     public String toString() {
         // some code goes here
-        String s = "f = "+getField()+" op = "+op.toString()+" operand = "+operand.toString();
-        return s;
+        return "f = "+getField()+" op = "+op.toString()+" operand = "+operand.toString();
     }
 }
