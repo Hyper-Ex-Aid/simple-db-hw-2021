@@ -17,12 +17,12 @@ import simpledb.storage.TupleIterator;
 public class IntegerAggregator implements Aggregator {
 
     private static final long serialVersionUID = 1L;
-    private int gbfield;
-    private Type gbfieldtype;
-    private int afield;
-    private Op what;
+    private final int gbfield;
+    private final Type gbfieldtype;
+    private final int afield;
+    private final Op what;
     //需要一个集合来存储聚合后的元组集合
-    private HashMap<Field,Integer> hashMap;
+    private final HashMap<Field,Integer> hashMap;
     //用于辅助记录，执行AVG聚合操作时，每个分组的已经聚合的元组数量
     private HashMap<Field,Integer> avgSupMapCount;
     private HashMap<Field,Integer> avgSupMapSum;
