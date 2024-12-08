@@ -172,6 +172,14 @@ public class BufferPool {
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+        //首先找到要删除的文件
+        HeapFile heapFile = (HeapFile) Database.getCatalog().getDatabaseFile(tableId);
+        //之后删除文件
+        //将被脏化的页面，添加到现有的缓存中
+        for (Page page:heapFile.insertTuple(tid,t)){
+            page.markDirty(true,tid);
+            pageHashMap.put(page.getId().hashCode(),page);
+        }
     }
 
     /**
@@ -182,7 +190,8 @@ public class BufferPool {
      * Marks any pages that were dirtied by the operation as dirty by calling
      * their markDirty bit, and adds versions of any pages that have 
      * been dirtied to the cache (replacing any existing versions of those pages) so 
-     * that future requests see up-to-date pages. 
+     * that future requests see up-to-date pages.
+     * 通过调用页面的markDirty位，标记操作所脏化的任何页面位脏页面，并将任何被脏化的页面的版本添加到缓存中（替换这些页面的现有版本），以确保未来的请求能够看到最新的页面
      *
      * @param tid the transaction deleting the tuple.
      * @param t the tuple to delete
@@ -191,6 +200,12 @@ public class BufferPool {
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+        HeapFile heapFile = (HeapFile) Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId());
+        //将被脏化的页面，添加到现有的缓存中
+        for (Page page:heapFile.deleteTuple(tid,t)){
+            page.markDirty(true,tid);
+            pageHashMap.put(page.getId().hashCode(),page);
+        }
     }
 
     /**

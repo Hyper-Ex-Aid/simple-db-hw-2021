@@ -22,8 +22,13 @@ public class HeapPage implements Page {
     final HeapPageId pid;
     final TupleDesc td;
     final byte[] header;
+    //用于存储元组
     final Tuple[] tuples;
     final int numSlots;
+    //是否为脏页
+    private boolean dirty;
+    //事务id
+    private TransactionId transactionId;
 
     byte[] oldData;
     private final Byte oldDataLock= (byte) 0;
@@ -236,6 +241,8 @@ public class HeapPage implements Page {
      * this method to the HeapPage constructor will create a HeapPage with
      * no valid tuples in it.
      *
+     * 静态方法，用于生成与空HeapPage对应的字节数组。用于向文件中添加新的空页面。将此方法的结果传递给HeapPage构造函数将创建一个没有有效元组的HeapPage
+     *
      * @return The returned ByteArray.
      */
     public static byte[] createEmptyPageData() {
@@ -246,13 +253,32 @@ public class HeapPage implements Page {
     /**
      * Delete the specified tuple from the page; the corresponding header bit should be updated to reflect
      *   that it is no longer stored on any page.
+     *  从页面中删除指定的元组，应更新相应的标头位，以反映它不再存储在任何页面上
      * @throws DbException if this tuple is not on this page, or tuple slot is
      *         already empty.
+     *         如果此元组不在此页面上，或者元组槽为空
      * @param t The tuple to delete
      */
     public void deleteTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
+        RecordId recordId = t.getRecordId();
+        //PageId用来判断此元组是否存储在该页上，如果不在，抛出异常
+        PageId pageId = recordId.getPageId();
+        if(!pid.equals(pageId)){
+            throw new DbException("此元组不在此页面上");
+        }
+        //tupleNumber用来判断该元组是否存储在，该页的该位置，如果不在，则抛出异常
+        int tupleNumber = recordId.getTupleNumber();
+        if(tuples[tupleNumber]==null){
+            throw new DbException("元组槽为空");
+        }else{
+            //如果元组确定存储在该页上，并且存储它的元组槽不为空，则将其删除
+            //对页眉进行修改
+            markSlotUsed(tupleNumber,true);
+            //元组槽置空
+            tuples[tupleNumber]=null;
+        }
     }
 
     /**
@@ -265,6 +291,28 @@ public class HeapPage implements Page {
     public void insertTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
+        //如果没有空槽位，则抛出异常
+        if(getNumEmptySlots()==0){
+            throw new DbException("槽位已满");
+        }
+        //如果tupledesc不匹配则抛出异常
+        if(!td.equals(t.getTupleDesc())){
+            throw new DbException("TupleDesc不匹配");
+        }
+        //如果两个条件都满足，则进行插入操作
+        //首先查找空的槽位
+        for(int i=0;i<numSlots;i++){
+            //如果这个槽位是空的，则将元组插入这个槽位
+            if(!isSlotUsed(i)){
+                //首先更新tuple的RecordId
+                t.setRecordId(new RecordId(pid,i));
+                //之后更新页眉
+                markSlotUsed(i,false);
+                //之后将该tuple存入数组
+                tuples[i]=t;
+                return;
+            }
+        }
     }
 
     /**
@@ -274,14 +322,20 @@ public class HeapPage implements Page {
     public void markDirty(boolean dirty, TransactionId tid) {
         // some code goes here
 	// not necessary for lab1
+        this.dirty=dirty;
+        this.transactionId=tid;
     }
 
     /**
      * Returns the tid of the transaction that last dirtied this page, or null if the page is not dirty
+     * 返回上次弄脏此页面的事务的id，如果页面不脏，则返回bull
      */
     public TransactionId isDirty() {
         // some code goes here
 	// Not necessary for lab1
+        if(dirty){
+            return transactionId;
+        }
         return null;      
     }
 
@@ -315,10 +369,29 @@ public class HeapPage implements Page {
 
     /**
      * Abstraction to fill or clear a slot on this page.
+     * Abstraction用于填充或清除此页上的空白
      */
     private void markSlotUsed(int i, boolean value) {
         // some code goes here
         // not necessary for lab1
+        // 找到槽位
+        int slot = i / 8;
+        // 偏移
+        int move = i % 8;
+        // 掩码
+        //例如i%8=1,记录的是第二位，所以要向左移动一位
+        byte mask = (byte) (1 << move);
+        // 更新槽位
+        if(value){
+            //如果该标记是被占用的，则更新1为0，用于删除操作
+            //该占用为和0做与操作
+            header[slot] &= ~mask;
+        }else{
+            //如果标记未被占用，则更新0为1，用于插入操作
+            //该空位与1做或操作
+            header[slot] |= mask;
+        }
+
     }
 
     /**
