@@ -11,6 +11,8 @@ import java.io.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -101,9 +103,18 @@ public class BufferPool {
 //            pageHashMap.put(pid.hashCode(),page);
 //            return pageHashMap.get(pid);
 //        }
+        //如果缓冲池中不存在某页面，则先将该页面添加到缓冲池
         if(!pageHashMap.containsKey(pid.hashCode())){
             DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
             Page page = dbFile.readPage(pid);
+            //如果缓冲池中页面的数量，超出了缓冲池的页面数量限制，则将一个页面驱逐
+            if(pageHashMap.size()>=numPages){
+//                ArrayList<Map.Entry<Integer,Page>> list = new ArrayList<>(pageHashMap.entrySet());
+//                Random random = new Random();
+//                Map.Entry<Integer,Page> entry = list.get(random.nextInt(list.size()));
+//                pageHashMap.remove(entry.getKey());
+                evictPage();
+            }
             pageHashMap.put(pid.hashCode(),page);
         }
         return pageHashMap.get(pid.hashCode());
@@ -212,10 +223,18 @@ public class BufferPool {
      * Flush all dirty pages to disk.
      * NB: Be careful using this routine -- it writes dirty data to disk so will
      *     break simpledb if running in NO STEAL mode.
+     * 将所有脏页刷新到磁盘。
+     * 注意：使用这个方法时要小心，它会将脏数据写入磁盘，因此如果在NO STEAL模式下运行，会破坏simpledb
      */
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
         // not necessary for lab1
+        for(Page page:pageHashMap.values()){
+            if(page.isDirty()!=null){
+                flushPage(page.getId());
+                page.markDirty(false,null);
+            }
+        }
 
     }
 
@@ -230,15 +249,22 @@ public class BufferPool {
     public synchronized void discardPage(PageId pid) {
         // some code goes here
         // not necessary for lab1
+        pageHashMap.remove(pid.hashCode());
+
     }
 
     /**
      * Flushes a certain page to disk
+     * 将某个页面刷新到磁盘
      * @param pid an ID indicating the page to flush
      */
     private synchronized  void flushPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for lab1
+        //获取该页
+        Page page = pageHashMap.get(pid.hashCode());
+        //将该页刷新到磁盘
+        Database.getCatalog().getDatabaseFile(pid.getTableId()).writePage(page);
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -255,6 +281,15 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for lab1
+        ArrayList<Map.Entry<Integer,Page>> list = new ArrayList<>(pageHashMap.entrySet());
+        Random random = new Random();
+        Map.Entry<Integer,Page> entry = list.get(random.nextInt(list.size()));
+        try {
+            flushPage(entry.getValue().getId());
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        pageHashMap.remove(entry.getKey());
     }
 
 }
