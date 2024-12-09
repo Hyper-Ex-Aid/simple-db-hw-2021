@@ -25,6 +25,7 @@ public class Insert extends Operator {
     private OpIterator opIterator;
     private int tableId;
     private TupleDesc tupleDesc;
+    private boolean inserted;
 
     /**
      * Constructor.
@@ -54,6 +55,7 @@ public class Insert extends Operator {
         this.opIterator=child;
         this.tableId=tableId;
         this.tupleDesc=new TupleDesc(new Type[]{Type.INT_TYPE});
+        this.inserted=false;
     }
 
     public TupleDesc getTupleDesc() {
@@ -76,6 +78,7 @@ public class Insert extends Operator {
     public void rewind() throws DbException, TransactionAbortedException {
         // some code goes here
         opIterator.rewind();
+        inserted=false;
     }
 
     /**
@@ -96,23 +99,27 @@ public class Insert extends Operator {
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
         // some code goes here
-        //记录插入操作数
-        int count = 0;
-        //如果存在下一个元组
-        while (opIterator.hasNext()){
-            //获取要插入的元组
-            try{
-                Database.getBufferPool().insertTuple(transactionId,tableId,opIterator.next());
-                count++;
-            }catch (IOException e){
-                e.printStackTrace();
+        if(!inserted){
+            inserted=true;
+            //记录插入操作数
+            int count = 0;
+            //如果存在下一个元组
+            while (opIterator.hasNext()){
+                //获取要插入的元组
+                try{
+                    Database.getBufferPool().insertTuple(transactionId,tableId,opIterator.next());
+                    count++;
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
             }
+            //返回一个元组，这个元组记录了进行了多少次插入操作
+            Tuple tuple = new Tuple(tupleDesc);
+            tuple.setField(0,new IntField(count));
+            return tuple;
         }
-        //返回一个元组，这个元组记录了进行了多少次插入操作
-        Tuple tuple = new Tuple(tupleDesc);
-        tuple.setField(0,new IntField(count));
-        return tuple;
         //如果进行了多次插入操作，则为null
+        return null;
     }
 
     @Override
