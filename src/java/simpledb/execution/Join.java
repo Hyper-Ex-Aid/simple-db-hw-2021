@@ -115,20 +115,25 @@ public class Join extends Operator {
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
         // some code goes here
         //笛卡尔积
-        //tuple1遍历到最后一个
+
         while(child1.hasNext()||tuple1!=null){
+            //每一次遍历时，先确定child1的元组
             if(child1.hasNext()&&tuple1==null){
                 tuple1=child1.next();
             }
+            //之后开始用child2的每一个元组与child1的元组进行全连接
             while (child2.hasNext()){
                 Tuple tuple2 = child2.next();
-                //如果满足条件
+                //判断是否满足连接条件，如果满足，则进行连接操作，即创建新的元组，并返回
                 if(p.filter(tuple1,tuple2)){
+                    //新的全连接元组中的每一个新的元组，都包含child1与child2，所以新元组的TupleDesc是两个元组的merge
                     TupleDesc newTupleDesc = TupleDesc.merge(child1.getTupleDesc(),child2.getTupleDesc());
+                    //创建新元组
                     Tuple newTuple = new Tuple(newTupleDesc);
                     //设置路径
                     newTuple.setRecordId(tuple1.getRecordId());
                     //合并
+                    //往里面添加字段
                     int i=0;
                     for(;i<tuple1.getTupleDesc().numFields();i++){
                         newTuple.setField(i,tuple1.getField(i));
@@ -144,7 +149,7 @@ public class Join extends Operator {
                     return newTuple;
                 }
             }
-            //都遍历结束
+            //都遍历结束，重置child2，从头开始与下一个child1的元组进行全连接
             child2.rewind();
             tuple1=null;
         }

@@ -184,7 +184,7 @@ public class TupleDesc implements Serializable {
     /**
      * Compares the specified object with this TupleDesc for equality. Two TupleDescs are considered equal if they have the same number of
      * items and if the i-th type in this TupleDesc is equal to the i-th type in o for every i.
-     *
+     * 类型和数量相等即可
      * @param o
      *         the Object to be compared for equality with this TupleDesc.
      * @return true if the object is equal to this TupleDesc.
@@ -197,10 +197,11 @@ public class TupleDesc implements Serializable {
         }
         if (o instanceof TupleDesc) {
             TupleDesc tupleDesc = (TupleDesc) o;
+            //先比较数量是否相等
             if (numFields() == tupleDesc.numFields()) {
                 int index = numFields();
                 while (index-- != 0) {
-                    if (!tdAr.get(index).toString().equals(tupleDesc.tdAr.get(index).toString())) {
+                    if (!tdAr.get(index).fieldType.equals(tupleDesc.tdAr.get(index).fieldType)) {
                         return false;
                     }
                     return true;
