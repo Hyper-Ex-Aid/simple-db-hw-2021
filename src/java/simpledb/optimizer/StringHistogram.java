@@ -5,6 +5,7 @@ import simpledb.execution.Predicate;
 /**
  * A class to represent a fixed-width histogram over a single String-based
  * field.
+ * 用于表示基于单个字符串字段的固定宽度直方图
  */
 public class StringHistogram {
     final IntHistogram hist;
