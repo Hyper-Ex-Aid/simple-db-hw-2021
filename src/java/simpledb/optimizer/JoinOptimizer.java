@@ -209,24 +209,39 @@ public class JoinOptimizer {
      */
     public <T> Set<Set<T>> enumerateSubsets(List<T> v, int size) {
         Set<Set<T>> els = new HashSet<>();
-        els.add(new HashSet<>());
-        // Iterator<Set> it;
-        // long start = System.currentTimeMillis();
-
-        for (int i = 0; i < size; i++) {
-            Set<Set<T>> newels = new HashSet<>();
-            for (Set<T> s : els) {
-                for (T t : v) {
-                    Set<T> news = new HashSet<>(s);
-                    if (news.add(t))
-                        newels.add(news);
-                }
-            }
-            els = newels;
-        }
+//        els.add(new HashSet<>());
+//        // Iterator<Set> it;
+//        // long start = System.currentTimeMillis();
+//
+//        for (int i = 0; i < size; i++) {
+//            Set<Set<T>> newels = new HashSet<>();
+//            for (Set<T> s : els) {
+//                for (T t : v) {
+//                    Set<T> news = new HashSet<>(s);
+//                    if (news.add(t))
+//                        newels.add(news);
+//                }
+//            }
+//            els = newels;
+//        }
+        dfs(els, v, size, 0, new LinkedList<>());
 
         return els;
 
+    }
+
+    private<T> void dfs(Set<Set<T>> els, List<T> v, int size, int curIdx, Deque<T> path){
+        if(path.size() == size){
+            els.add(new HashSet<>(path));
+            return;
+        }
+        if(curIdx == size){
+            return;
+        }
+        path.addFirst(v.get(curIdx));
+        dfs(els, v, size, curIdx + 1, path);
+        path.removeFirst();
+        dfs(els, v, size, curIdx + 1, path);
     }
 
     /**
